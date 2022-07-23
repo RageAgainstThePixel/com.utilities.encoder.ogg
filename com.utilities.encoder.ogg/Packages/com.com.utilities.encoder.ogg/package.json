@@ -3,7 +3,7 @@
   "displayName": "Ogg Encoder",
   "description": "Simple library for Ogg encoding support.",
   "keywords": [],
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "MIT",
   "repository": {
     "type": "git",
