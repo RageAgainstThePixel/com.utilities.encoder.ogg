@@ -10,7 +10,7 @@ A com.utilities.encoder.ogg package for the [Unity](https://unity.com/) Game Eng
 
 - Open your Unity project settings
 - Select the `Package Manager`
-![scoped-registries](com.utilities.encoder.ogg/Packages//com.utilities.encoder.ogg/Documentation~/images/package-manager-scopes.png)
+![scoped-registries](com.utilities.encoder.ogg/Packages/com.utilities.encoder.ogg/Documentation~/images/package-manager-scopes.png)
 - Add the OpenUPM package registry:
   - `Name: OpenUPM`
   - `URL: https://package.openupm.com`
