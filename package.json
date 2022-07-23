@@ -1,0 +1,13 @@
+{
+  "name": "com.utilities.encoder.ogg",
+  "displayName": "Ogg Encoder",
+  "description": "Simple library for Ogg encoding support.",
+  "keywords": [],
+  "version": "1.0.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RageAgainstThePixel/com.utilities.encoder.ogg.git"
+  },
+  "author": "StephenHodgson"
+}
