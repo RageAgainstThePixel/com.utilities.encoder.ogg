@@ -4,8 +4,8 @@
 
 A com.utilities.encoder.ogg package for the [Unity](https://unity.com/) Game Engine.
 
-This package uses the open source .net ogg vorbis encoder found here
-https://github.com/SteveLillis/.NET-Ogg-Vorbis-Encoder
+This package uses the open source .net ogg vorbis encoder found on NuGet
+https://www.nuget.org/packages/OggVorbisEncoder/
 
 ## Installing
 
