@@ -4,7 +4,7 @@
   "description": "Simple library for Ogg encoding support.",
   "keywords": [],
   "version": "1.1.2",
-  "unity": "2021.4",
+  "unity": "2021.3",
   "documentationUrl": "https://github.com/RageAgainstThePixel/com.utilities.encoder.ogg#documentation",
   "changelogUrl": "https://github.com/RageAgainstThePixel/com.utilities.encoder.ogg/releases",
   "license": "MIT",
