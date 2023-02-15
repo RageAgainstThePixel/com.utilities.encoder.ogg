@@ -3,11 +3,19 @@
   "displayName": "Ogg Encoder",
   "description": "Simple library for Ogg encoding support.",
   "keywords": [],
-  "version": "1.0.1",
+  "version": "1.1.0",
+  "unity": "2021.4",
+  "documentationUrl": "https://github.com/RageAgainstThePixel/com.utilities.encoder.ogg#documentation",
+  "changelogUrl": "https://github.com/RageAgainstThePixel/com.utilities.encoder.ogg/releases",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/RageAgainstThePixel/com.utilities.encoder.ogg.git"
   },
-  "author": "Stephen Hodgson"
+  "author": "Stephen Hodgson",
+  "dependencies": {
+    "com.unity.modules.audio": "1.0.0",
+    "com.utilities.async": "1.2.0"
+  },
+  "hideInEditor": true
 }

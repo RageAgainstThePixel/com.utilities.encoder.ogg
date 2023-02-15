@@ -12,7 +12,7 @@ This package uses the open source .net ogg vorbis encoder found on [NuGet](https
 
 - Open your Unity project settings
 - Select the `Package Manager`
-![scoped-registries](https://media.githubusercontent.com/media/RageAgainstThePixel/com.utilities.encoder.ogg/main/com.utilities.encoder.ogg/Packages/com.com.utilities.encoder.ogg/Documentation~/images/package-manager-scopes.png)
+![scoped-registries](images/package-manager-scopes.png)
 - Add the OpenUPM package registry:
   - `Name: OpenUPM`
   - `URL: https://package.openupm.com`
