@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -9,6 +10,8 @@ namespace Utilities.Encoding.OggVorbis.Demo
     {
         [SerializeField]
         private AudioSource audioSource;
+
+        private CancellationTokenSource gameObjectCts;
 
         private void OnValidate()
         {
@@ -33,6 +36,32 @@ namespace Utilities.Encoding.OggVorbis.Demo
 
             // Event raised whenever a recording is completed.
             RecordingManager.OnClipRecorded += OnClipRecorded;
+
+            // Stops the recording if this game object is destroyed.
+            gameObjectCts = new CancellationTokenSource();
+        }
+
+        private void Update()
+        {
+            if (Input.GetKeyUp(KeyCode.Space))
+            {
+                if (RecordingManager.IsRecording)
+                {
+                    EndRecording();
+                }
+                else
+                {
+                    if (!RecordingManager.IsBusy)
+                    {
+                        StartRecording();
+                    }
+                }
+            }
+        }
+
+        private void OnDestroy()
+        {
+            gameObjectCts.Cancel();
         }
 
         private void OnClipRecorded(Tuple<string, AudioClip> recording)
@@ -62,7 +91,7 @@ namespace Utilities.Encoding.OggVorbis.Demo
             try
             {
                 // Starts the recording process
-                var recording = await RecordingManager.StartRecordingAsync();
+                var recording = await RecordingManager.StartRecordingAsync(cancellationToken: gameObjectCts.Token);
                 var (path, newClip) = recording;
                 Debug.Log($"Recording saved at: {path}");
                 audioSource.clip = newClip;

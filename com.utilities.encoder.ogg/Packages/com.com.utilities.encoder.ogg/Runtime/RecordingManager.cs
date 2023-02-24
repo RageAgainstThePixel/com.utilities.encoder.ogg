@@ -11,8 +11,6 @@ namespace Utilities.Encoding.OggVorbis
 {
     public static class RecordingManager
     {
-        private const float RescaleFactor = 32768f;
-
         private static int maxRecordingLength = 300;
 
         private static readonly object recordingLock = new object();
@@ -159,7 +157,7 @@ namespace Utilities.Encoding.OggVorbis
                 saveDirectory = DefaultSaveLocation;
             }
 
-            var clip = Microphone.Start(null, false, MaxRecordingLength, 48000);
+            var clip = Microphone.Start(null, false, MaxRecordingLength, Constants.Frequency);
 
             if (EnableDebug)
             {
@@ -225,10 +223,8 @@ namespace Utilities.Encoding.OggVorbis
                 isProcessing = true;
             }
 
-            var channels = 2;
             var lastPosition = 0;
             var clipName = clip.name;
-            var frequency = clip.frequency;
             var maxClipLength = clip.samples;
             var samples = new float[clip.samples];
 
@@ -251,7 +247,7 @@ namespace Utilities.Encoding.OggVorbis
 
             try
             {
-                var info = VorbisInfo.InitVariableBitRate(channels, frequency, 0.2f);
+                var info = VorbisInfo.InitVariableBitRate(Constants.Channels, Constants.Frequency, 0.2f);
 
                 // set up our packet->stream encoder
                 var oggStream = new OggStream(new Random().Next());
@@ -261,12 +257,11 @@ namespace Utilities.Encoding.OggVorbis
                 // =========================================================
                 // HEADER
                 // =========================================================
-                var headerBuilder = new HeaderPacketBuilder();
                 var comments = new Comments();
 
-                var infoPacket = headerBuilder.BuildInfoPacket(info);
-                var commentsPacket = headerBuilder.BuildCommentsPacket(comments);
-                var booksPacket = headerBuilder.BuildBooksPacket(info);
+                var infoPacket = HeaderPacketBuilder.BuildInfoPacket(info);
+                var commentsPacket = HeaderPacketBuilder.BuildCommentsPacket(comments);
+                var booksPacket = HeaderPacketBuilder.BuildBooksPacket(info);
 
                 oggStream.PacketIn(infoPacket);
                 oggStream.PacketIn(commentsPacket);
@@ -280,6 +275,13 @@ namespace Utilities.Encoding.OggVorbis
                     await outStream.WriteAsync(page.Body, 0, page.Body.Length).ConfigureAwait(false);
                 }
 
+                // Flush to force audio data onto its own page per the spec
+                while (oggStream.PageOut(out page, true))
+                {
+                    await outStream.WriteAsync(page.Header, 0, page.Header.Length);
+                    await outStream.WriteAsync(page.Body, 0, page.Body.Length);
+                }
+
                 #endregion Header
 
                 #region Body
@@ -288,13 +290,13 @@ namespace Utilities.Encoding.OggVorbis
                 // BODY (Audio Data)
                 // =========================================================
                 var processingState = ProcessingState.Create(info);
-                var modulatorData = new short[samples.Length * 2];
-                var readBuffer = new byte[samples.Length * 4];
-                var buffer = new float[info.Channels][];
+                var modulatorData = new short[samples.Length * info.Channels];
+                var readBuffer = new byte[samples.Length * sizeof(float)];
+                var channelBuffer = new float[info.Channels][];
 
                 for (int i = 0; i < info.Channels; i++)
                 {
-                    buffer[i] = new float[samples.Length];
+                    channelBuffer[i] = new float[samples.Length];
                 }
 
                 var shouldStop = false;
@@ -322,7 +324,7 @@ namespace Utilities.Encoding.OggVorbis
 
                         foreach (var pcm in samples)
                         {
-                            var sample = (short)(pcm * RescaleFactor);
+                            var sample = (short)(pcm * Constants.RescaleFactor);
                             modulatorData[sampleIndex++] = sample;
                             modulatorData[sampleIndex++] = sample;
                         }
@@ -333,15 +335,17 @@ namespace Utilities.Encoding.OggVorbis
 
                         for (var i = 0; i < length; i++)
                         {
-                            buffer[0][i] =
-                                (short)((readBuffer[(lastPosition + i) * 4 + 1] << 8) |
-                                         (0x00ff & readBuffer[(lastPosition + i) * 4 + 0])) / RescaleFactor;
-                            buffer[1][i] =
-                                (short)((readBuffer[(lastPosition + i) * 4 + 3] << 8) |
-                                         (0x00ff & readBuffer[(lastPosition + i) * 4 + 2])) / RescaleFactor;
+                            var leftReadBuffer1 = (lastPosition + i) * sizeof(float) + 1;
+                            var leftReadBuffer2 = (lastPosition + i) * sizeof(float) + 0;
+                            var leftRawValue = (readBuffer[leftReadBuffer1] << 8) | (0x00ff & readBuffer[leftReadBuffer2]);
+                            channelBuffer[0][i] = (short)leftRawValue / Constants.RescaleFactor;
+                            var rightReadBuffer1 = (lastPosition + i) * sizeof(float) + 3;
+                            var rightReadBuffer2 = (lastPosition + i) * sizeof(float) + 2;
+                            var rightRawValue = (readBuffer[rightReadBuffer1] << 8) | (0x00ff & readBuffer[rightReadBuffer2]);
+                            channelBuffer[1][i] = (short)rightRawValue / Constants.RescaleFactor;
                         }
 
-                        processingState.WriteData(buffer, length);
+                        processingState.WriteData(channelBuffer, length);
                         lastPosition = currentPosition;
                     }
 
@@ -437,7 +441,7 @@ namespace Utilities.Encoding.OggVorbis
             await Awaiters.UnityMainThread;
 
             // Create a copy.
-            var newClip = AudioClip.Create(clipName, microphoneData.Length, 1, frequency, false);
+            var newClip = AudioClip.Create(clipName, microphoneData.Length, 1, Constants.Frequency, false);
             newClip.SetData(microphoneData, 0);
             var result = new Tuple<string, AudioClip>(path, newClip);
 
