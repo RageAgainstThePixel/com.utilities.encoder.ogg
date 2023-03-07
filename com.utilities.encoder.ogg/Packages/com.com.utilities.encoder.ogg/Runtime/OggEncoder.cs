@@ -3,6 +3,7 @@
 using OggVorbisEncoder;
 using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -50,7 +51,6 @@ namespace Utilities.Encoding.OggVorbis
 
         public static byte[] ConvertToBytes(float[][] samples, int sampleRate, int channels, float quality = 1f)
         {
-            const int writeBufferSize = 1;
             using MemoryStream outputData = new MemoryStream();
 
             // Stores all the static vorbis bit stream settings
@@ -84,22 +84,35 @@ namespace Utilities.Encoding.OggVorbis
             // BODY (Audio Data)
             // =========================================================
             var processingState = ProcessingState.Create(info);
+            var sampleLength = samples[0].Length;
+            var writeBufferSize = 1024;
 
-            for (var readIndex = 0; readIndex <= samples[0].Length; readIndex += writeBufferSize)
+            for (var readIndex = 0; readIndex <= sampleLength;)
             {
-                if (readIndex == samples[0].Length)
+                if (readIndex == sampleLength)
                 {
                     processingState.WriteEndOfStream();
+                    break;
                 }
-                else
-                {
-                    processingState.WriteData(samples, writeBufferSize, readIndex);
-                }
+
+                processingState.WriteData(samples, writeBufferSize, readIndex);
 
                 while (processingState.PacketOut(out var packet))
                 {
                     oggStream.PacketIn(packet);
                     oggStream.FlushPages(outputData, false);
+                }
+
+                var nextIndex = readIndex + writeBufferSize;
+
+                if (nextIndex >= sampleLength - writeBufferSize)
+                {
+                    writeBufferSize = (sampleLength - readIndex) - writeBufferSize;
+                    readIndex = sampleLength;
+                }
+                else
+                {
+                    readIndex = nextIndex;
                 }
             }
 
@@ -108,8 +121,91 @@ namespace Utilities.Encoding.OggVorbis
             return outputData.ToArray();
         }
 
-        public async Task<Tuple<string, AudioClip>> StreamSaveToDiskAsync(AudioClip clip, string saveDirectory, CancellationToken cancellationToken, Action<Tuple<string, AudioClip>> callback = null)
+        public static async Task<byte[]> ConvertToBytesAsync(float[][] samples, int sampleRate, int channels, float quality = 1f, CancellationToken cancellationToken = default)
         {
+            using MemoryStream outputData = new MemoryStream();
+
+            // Stores all the static vorbis bit stream settings
+            var info = VorbisInfo.InitVariableBitRate(channels, sampleRate, quality);
+
+            // set up our packet->stream encoder
+            var serial = new Random().Next();
+            var oggStream = new OggStream(serial);
+
+            // =========================================================
+            // HEADER
+            // =========================================================
+            // Vorbis streams begin with three headers; the initial header
+            // (with most of the codec setup parameters) which is mandated
+            // by the Ogg bitstream spec.  The second header holds any
+            // comment fields.  The third header holds the bitstream codebook.
+            var comments = new Comments();
+
+            var infoPacket = HeaderPacketBuilder.BuildInfoPacket(info);
+            var commentsPacket = HeaderPacketBuilder.BuildCommentsPacket(comments);
+            var booksPacket = HeaderPacketBuilder.BuildBooksPacket(info);
+
+            oggStream.PacketIn(infoPacket);
+            oggStream.PacketIn(commentsPacket);
+            oggStream.PacketIn(booksPacket);
+
+            // Flush to force audio data onto its own page per the spec
+            await oggStream.FlushPagesAsync(outputData, true, cancellationToken);
+
+            // =========================================================
+            // BODY (Audio Data)
+            // =========================================================
+            var processingState = ProcessingState.Create(info);
+            var sampleLength = samples[0].Length;
+            var writeBufferSize = 1024;
+
+            for (var readIndex = 0; readIndex <= sampleLength;)
+            {
+                if (readIndex == sampleLength)
+                {
+                    processingState.WriteEndOfStream();
+                    break;
+                }
+
+                processingState.WriteData(samples, writeBufferSize, readIndex);
+
+                while (processingState.PacketOut(out var packet))
+                {
+                    oggStream.PacketIn(packet);
+                    await oggStream.FlushPagesAsync(outputData, false, cancellationToken);
+                }
+
+                var nextIndex = readIndex + writeBufferSize;
+
+                if (nextIndex >= sampleLength - writeBufferSize)
+                {
+                    writeBufferSize = (sampleLength - readIndex) - writeBufferSize;
+                    readIndex = sampleLength;
+                }
+                else
+                {
+                    readIndex = nextIndex;
+                }
+            }
+
+            await oggStream.FlushPagesAsync(outputData, true, cancellationToken).ConfigureAwait(false);
+            var result = outputData.ToArray();
+            await outputData.DisposeAsync().ConfigureAwait(false);
+            return result;
+        }
+
+        public async Task<Tuple<string, AudioClip>> StreamSaveToDiskAsync(AudioClip clip, string saveDirectory, CancellationToken cancellationToken, Action<Tuple<string, AudioClip>> callback = null, [CallerMemberName] string callingMethodName = null)
+        {
+            if (callingMethodName != nameof(RecordingManager.StartRecordingAsync))
+            {
+                throw new InvalidOperationException($"{nameof(StreamSaveToDiskAsync)} can only be called from {nameof(RecordingManager.StartRecordingAsync)}");
+            }
+
+            if (!Microphone.IsRecording(null))
+            {
+                throw new InvalidOperationException("Microphone is not initialized!");
+            }
+
             if (RecordingManager.IsProcessing)
             {
                 throw new AccessViolationException("Recoding already in progress!");
@@ -198,7 +294,7 @@ namespace Utilities.Encoding.OggVorbis
                 var readBuffer = new byte[samples.Length * sizeof(float)];
                 var channelBuffer = new float[info.Channels][];
 
-                for (int i = 0; i < info.Channels; i++)
+                for (var i = 0; i < info.Channels; i++)
                 {
                     channelBuffer[i] = new float[samples.Length];
                 }
@@ -208,8 +304,12 @@ namespace Utilities.Encoding.OggVorbis
                 while (!oggStream.Finished)
                 {
                     await Awaiters.UnityMainThread;
-                    int currentPosition = Microphone.GetPosition(null);
-                    clip.GetData(samples, 0);
+                    var currentPosition = Microphone.GetPosition(null);
+
+                    if (clip != null)
+                    {
+                        clip.GetData(samples, 0);
+                    }
 
                     if (shouldStop)
                     {
