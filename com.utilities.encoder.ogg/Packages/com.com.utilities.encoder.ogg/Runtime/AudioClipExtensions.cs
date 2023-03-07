@@ -59,8 +59,8 @@ namespace Utilities.Encoding.OggVorbis
                 pcmData[sampleIndex++] = (byte)(sample >> 8);
             }
 
-            var rawSamples = Encoder.ConvertPcmData(audioClip.frequency, audioClip.channels, pcmData, audioClip.frequency, audioClip.channels);
-            var rawOggBytes = Encoder.ConvertToBytes(rawSamples, audioClip.frequency, audioClip.channels);
+            var rawSamples = OggEncoder.ConvertPcmData(audioClip.frequency, audioClip.channels, pcmData, audioClip.frequency, audioClip.channels);
+            var rawOggBytes = OggEncoder.ConvertToBytes(rawSamples, audioClip.frequency, audioClip.channels);
             return rawOggBytes;
         }
     }

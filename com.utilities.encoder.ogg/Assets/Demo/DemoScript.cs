@@ -1,7 +1,10 @@
+// Licensed under the MIT License. See LICENSE in the project root for license information.
+
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
+using Utilities.Audio;
 
 namespace Utilities.Encoding.OggVorbis.Demo
 {
@@ -91,7 +94,7 @@ namespace Utilities.Encoding.OggVorbis.Demo
             try
             {
                 // Starts the recording process
-                var recording = await RecordingManager.StartRecordingAsync(cancellationToken: gameObjectCts.Token);
+                var recording = await RecordingManager.StartRecordingAsync<OggEncoder>(cancellationToken: gameObjectCts.Token);
                 var (path, newClip) = recording;
                 Debug.Log($"Recording saved at: {path}");
                 audioSource.clip = newClip;
