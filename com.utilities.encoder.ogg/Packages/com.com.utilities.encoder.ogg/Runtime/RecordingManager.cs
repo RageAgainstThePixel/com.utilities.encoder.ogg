@@ -228,6 +228,7 @@ namespace Utilities.Encoding.OggVorbis
             var maxClipLength = clip.samples;
             var samples = new float[clip.samples];
 
+            // ReSharper disable once MethodSupportsCancellation
             await Task.Delay(1).ConfigureAwait(false);
 
             if (!Directory.Exists(saveDirectory))
@@ -271,15 +272,19 @@ namespace Utilities.Encoding.OggVorbis
                 OggPage page;
                 while (oggStream.PageOut(out page, true))
                 {
+                    // ReSharper disable once MethodSupportsCancellation
                     await outStream.WriteAsync(page.Header, 0, page.Header.Length).ConfigureAwait(false);
+                    // ReSharper disable once MethodSupportsCancellation
                     await outStream.WriteAsync(page.Body, 0, page.Body.Length).ConfigureAwait(false);
                 }
 
                 // Flush to force audio data onto its own page per the spec
                 while (oggStream.PageOut(out page, true))
                 {
-                    await outStream.WriteAsync(page.Header, 0, page.Header.Length);
-                    await outStream.WriteAsync(page.Body, 0, page.Body.Length);
+                    // ReSharper disable once MethodSupportsCancellation
+                    await outStream.WriteAsync(page.Header, 0, page.Header.Length).ConfigureAwait(false);
+                    // ReSharper disable once MethodSupportsCancellation
+                    await outStream.WriteAsync(page.Body, 0, page.Body.Length).ConfigureAwait(false);
                 }
 
                 #endregion Header
@@ -305,17 +310,14 @@ namespace Utilities.Encoding.OggVorbis
                 {
                     await Awaiters.UnityMainThread;
                     int currentPosition = Microphone.GetPosition(null);
-
-                    if (clip != null)
-                    {
-                        clip.GetData(samples, 0);
-                    }
+                    clip.GetData(samples, 0);
 
                     if (shouldStop)
                     {
                         Microphone.End(null);
                     }
 
+                    // ReSharper disable once MethodSupportsCancellation
                     await Task.Delay(1).ConfigureAwait(false);
 
                     if (currentPosition != 0)
@@ -357,7 +359,9 @@ namespace Utilities.Encoding.OggVorbis
                         while (!oggStream.Finished &&
                                oggStream.PageOut(out page, false))
                         {
+                            // ReSharper disable once MethodSupportsCancellation
                             await outStream.WriteAsync(page.Header, 0, page.Header.Length).ConfigureAwait(false);
+                            // ReSharper disable once MethodSupportsCancellation
                             await outStream.WriteAsync(page.Body, 0, page.Body.Length).ConfigureAwait(false);
                         }
                     }
@@ -413,6 +417,7 @@ namespace Utilities.Encoding.OggVorbis
                     Debug.Log($"[{nameof(RecordingManager)}] Flush stream...");
                 }
 
+                // ReSharper disable once MethodSupportsCancellation
                 await outStream.FlushAsync().ConfigureAwait(false);
             }
             catch (Exception e)
