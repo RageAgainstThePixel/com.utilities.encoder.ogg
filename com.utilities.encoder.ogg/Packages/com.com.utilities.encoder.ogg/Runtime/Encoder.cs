@@ -42,7 +42,7 @@ namespace Utilities.Encoding.OggVorbis
 
         internal static byte[] ConvertToBytes(float[][] samples, int sampleRate, int channels, float quality = 1f)
         {
-            const int writeBufferSize = 512;
+            const int writeBufferSize = 1;
             using MemoryStream outputData = new MemoryStream();
 
             // Stores all the static vorbis bit stream settings
