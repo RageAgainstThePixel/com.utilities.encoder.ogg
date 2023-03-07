@@ -18,6 +18,6 @@
     "com.utilities.async": "1.2.0",
     "com.utilities.audio": "1.0.0-preview.1"
   },
-  "hideInEditor": true,
+  "hideInEditor": false,
   "type": "library"
 }
