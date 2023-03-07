@@ -36,7 +36,7 @@ namespace Utilities.Encoding.OggVorbis.Editor
 
             try
             {
-                File.WriteAllBytes(newClipPath, audioClip.EncodeAudioClipToOggVorbis());
+                File.WriteAllBytes(newClipPath, audioClip.EncodeToOggVorbis());
                 AssetDatabase.ImportAsset(newClipPath);
             }
             catch (Exception e)

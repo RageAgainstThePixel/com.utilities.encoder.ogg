@@ -11,7 +11,7 @@ namespace Utilities.Encoding.OggVorbis
         /// <param name="audioClip">The <see cref="AudioClip"/> to encode.</param>
         /// <param name="trim">Optional, trim silence at beginning and end of clip.</param>
         /// <returns><see cref="AudioClip"/> encoded to OggVorbis as byte array.</returns>
-        public static byte[] EncodeAudioClipToOggVorbis(this AudioClip audioClip, bool trim = false)
+        public static byte[] EncodeToOggVorbis(this AudioClip audioClip, bool trim = false)
         {
             var samples = new float[audioClip.samples * audioClip.channels];
             var sampleCount = samples.Length;
