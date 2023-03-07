@@ -25,7 +25,7 @@ namespace Utilities.Encoding.OggVorbis
             {
                 for (var i = 0; i < sampleCount; i++)
                 {
-                    if (samples[i] * Constants.RescaleFactor == 0)
+                    if (samples[i] * Audio.Constants.RescaleFactor == 0)
                     {
                         continue;
                     }
@@ -36,7 +36,7 @@ namespace Utilities.Encoding.OggVorbis
 
                 for (var i = sampleCount - 1; i >= 0; i--)
                 {
-                    if (samples[i] * Constants.RescaleFactor == 0)
+                    if (samples[i] * Audio.Constants.RescaleFactor == 0)
                     {
                         continue;
                     }
@@ -54,7 +54,7 @@ namespace Utilities.Encoding.OggVorbis
             // convert and write data
             for (var i = start; i < end; i++)
             {
-                var sample = (short)(samples[i] * Constants.RescaleFactor);
+                var sample = (short)(samples[i] * Audio.Constants.RescaleFactor);
                 pcmData[sampleIndex++] = (byte)(sample >> 0);
                 pcmData[sampleIndex++] = (byte)(sample >> 8);
             }
