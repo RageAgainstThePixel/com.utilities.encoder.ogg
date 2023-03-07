@@ -1,29 +1,61 @@
 using System;
+using System.IO;
 using UnityEngine;
 
 namespace Utilities.Encoding.OggVorbis
 {
     public static class AudioClipExtensions
     {
-        public static byte[] EncodeAudioClipToOggVorbis(this AudioClip audioClip)
+        /// <summary>
+        /// Encodes the <see cref="AudioClip"/> to OggVorbis
+        /// </summary>
+        /// <param name="audioClip">The <see cref="AudioClip"/> to encode.</param>
+        /// <param name="trim">Optional, trim silence at beginning and end of clip.</param>
+        /// <returns><see cref="AudioClip"/> encoded to OggVorbis as byte array.</returns>
+        public static byte[] EncodeAudioClipToOggVorbis(this AudioClip audioClip, bool trim = false)
         {
+            var sampleCount = audioClip.samples;
             var samples = new float[audioClip.samples * audioClip.channels];
-            var modulatorData = new short[samples.Length * audioClip.channels];
-            var pcmData = new byte[samples.Length * sizeof(float)];
-
             audioClip.GetData(samples, 0);
 
-            int sampleIndex = 0;
+            // trim data
+            var start = 0;
+            var end = sampleCount - 1;
 
-            foreach (var pcm in samples)
+            if (trim)
             {
-                var sample = (short)(pcm * Constants.RescaleFactor);
-                modulatorData[sampleIndex++] = sample;
+                for (var i = 0; i < sampleCount; i++)
+                {
+                    if ((short)(samples[i] * Constants.RescaleFactor) == 0)
+                    {
+                        continue;
+                    }
+
+                    start = i;
+                    break;
+                }
+
+                for (var i = sampleCount - 1; i >= 0; i--)
+                {
+                    if ((short)(samples[i] * Constants.RescaleFactor) == 0)
+                    {
+                        continue;
+                    }
+
+                    end = i;
+                    break;
+                }
             }
 
-            Buffer.BlockCopy(modulatorData, 0, pcmData, 0, modulatorData.Length);
+            using var stream = new MemoryStream();
 
-            var rawSamples = Encoder.ConvertPcmData(audioClip.frequency, audioClip.channels, pcmData, audioClip.frequency, audioClip.channels);
+            // convert and write data
+            for (var i = start; i <= end; i++)
+            {
+                stream.Write(BitConverter.GetBytes((short)(samples[i] * Constants.RescaleFactor)));
+            }
+
+            var rawSamples = Encoder.ConvertPcmData(audioClip.frequency, audioClip.channels, stream.ToArray(), audioClip.frequency, audioClip.channels);
             var rawOggBytes = Encoder.ConvertToBytes(rawSamples, audioClip.frequency, audioClip.channels);
             return rawOggBytes;
         }
