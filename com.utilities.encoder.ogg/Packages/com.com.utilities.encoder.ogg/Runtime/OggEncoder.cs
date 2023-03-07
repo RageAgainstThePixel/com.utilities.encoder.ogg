@@ -150,7 +150,7 @@ namespace Utilities.Encoding.OggVorbis
             oggStream.PacketIn(booksPacket);
 
             // Flush to force audio data onto its own page per the spec
-            await oggStream.FlushPagesAsync(outputData, true, cancellationToken);
+            await oggStream.FlushPagesAsync(outputData, true, cancellationToken).ConfigureAwait(false);
 
             // =========================================================
             // BODY (Audio Data)
@@ -172,7 +172,7 @@ namespace Utilities.Encoding.OggVorbis
                 while (processingState.PacketOut(out var packet))
                 {
                     oggStream.PacketIn(packet);
-                    await oggStream.FlushPagesAsync(outputData, false, cancellationToken);
+                    await oggStream.FlushPagesAsync(outputData, false, cancellationToken).ConfigureAwait(false);
                 }
 
                 var nextIndex = readIndex + writeBufferSize;

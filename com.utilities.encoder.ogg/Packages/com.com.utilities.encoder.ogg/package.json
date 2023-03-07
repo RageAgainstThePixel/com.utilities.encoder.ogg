@@ -16,7 +16,7 @@
   "dependencies": {
     "com.unity.modules.audio": "1.0.0",
     "com.utilities.async": "1.2.0",
-    "com.utilities.audio": "1.0.0-preview.2"
+    "com.utilities.audio": "1.0.0-preview.3"
   },
   "hideInEditor": false,
   "type": "library"
