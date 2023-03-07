@@ -36,8 +36,7 @@ namespace Utilities.Encoding.OggVorbis.Editor
 
             try
             {
-                var oggBytes = audioClip.EncodeAudioClipToOggVorbis();
-                File.WriteAllBytes(newClipPath, oggBytes);
+                File.WriteAllBytes(newClipPath, audioClip.EncodeAudioClipToOggVorbis());
                 AssetDatabase.ImportAsset(newClipPath);
             }
             catch (Exception e)
@@ -48,7 +47,6 @@ namespace Utilities.Encoding.OggVorbis.Editor
             {
                 EditorUtility.ClearProgressBar();
             }
-
         }
     }
 }
