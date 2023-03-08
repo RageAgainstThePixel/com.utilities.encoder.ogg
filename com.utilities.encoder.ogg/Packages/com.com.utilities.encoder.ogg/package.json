@@ -13,10 +13,11 @@
     "url": "git+https://github.com/RageAgainstThePixel/com.utilities.encoder.ogg.git"
   },
   "author": "Stephen Hodgson",
+  "url": "https://github.com/StephenHodgson",
   "dependencies": {
     "com.unity.modules.audio": "1.0.0",
     "com.utilities.async": "1.2.0",
-    "com.utilities.audio": "1.0.0-preview.4"
+    "com.utilities.audio": "1.0.0"
   },
   "hideInEditor": false,
   "type": "library"
