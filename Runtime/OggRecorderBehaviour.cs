@@ -1,11 +1,10 @@
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
+using Utilities.Audio;
+
 namespace Utilities.Encoding.OggVorbis
 {
-    public static class Constants
+    public sealed class OggRecorderBehaviour : AbstractRecordingBehaviour<OggEncoder>
     {
-        public const int Channels = 2;
-
-        public const int Frequency = 44100;
     }
 }

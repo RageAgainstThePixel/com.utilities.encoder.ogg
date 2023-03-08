@@ -1,3 +1,5 @@
+// Licensed under the MIT License. See LICENSE in the project root for license information.
+
 using System;
 using System.IO;
 using UnityEditor;
@@ -36,7 +38,7 @@ namespace Utilities.Encoding.OggVorbis.Editor
 
             try
             {
-                File.WriteAllBytes(newClipPath, audioClip.EncodeAudioClipToOggVorbis());
+                File.WriteAllBytes(newClipPath, audioClip.EncodeToOggVorbis());
                 AssetDatabase.ImportAsset(newClipPath);
             }
             catch (Exception e)
