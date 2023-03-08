@@ -17,9 +17,7 @@ namespace Utilities.Encoding.OggVorbis
     {
         public static float[][] ConvertPcmData(int outputSampleRate, int outputChannels, byte[] pcmSamples, int pcmSampleRate, int pcmChannels)
         {
-            const int pcmSampleSize = 2;
-
-            var numPcmSamples = pcmSamples.Length / pcmSampleSize / pcmChannels;
+            var numPcmSamples = pcmSamples.Length / sizeof(short) / pcmChannels;
             var pcmDuration = numPcmSamples / (float)pcmSampleRate;
             var numOutputSamples = (int)(pcmDuration * outputSampleRate) / pcmChannels;
             var outSamples = new float[outputChannels][];
@@ -33,14 +31,14 @@ namespace Utilities.Encoding.OggVorbis
             {
                 for (var channel = 0; channel < outputChannels; channel++)
                 {
-                    var sampleIndex = i * pcmChannels * pcmSampleSize;
+                    var sampleIndex = i * pcmChannels * sizeof(short);
 
                     if (channel < pcmChannels)
                     {
-                        sampleIndex += channel * pcmSampleSize;
+                        sampleIndex += channel * sizeof(short);
                     }
 
-                    var rawSample = (short)(pcmSamples[sampleIndex + 1] << 8 | pcmSamples[sampleIndex]) / Audio.Constants.RescaleFactor;
+                    var rawSample = (short)(pcmSamples[sampleIndex + 1] << 8 | pcmSamples[sampleIndex]) / (float)short.MaxValue;
 
                     outSamples[channel][i] = rawSample;
                 }
@@ -325,7 +323,7 @@ namespace Utilities.Encoding.OggVorbis
 
                         foreach (var pcm in samples)
                         {
-                            var sample = (short)(pcm * Audio.Constants.RescaleFactor);
+                            var sample = (short)(pcm * short.MaxValue);
                             modulatorData[sampleIndex++] = sample;
                             modulatorData[sampleIndex++] = sample;
                         }
@@ -339,11 +337,11 @@ namespace Utilities.Encoding.OggVorbis
                             var leftReadBuffer1 = (lastPosition + i) * sizeof(float) + 1;
                             var leftReadBuffer2 = (lastPosition + i) * sizeof(float) + 0;
                             var leftRawValue = (readBuffer[leftReadBuffer1] << 8) | (0x00ff & readBuffer[leftReadBuffer2]);
-                            channelBuffer[0][i] = (short)leftRawValue / Audio.Constants.RescaleFactor;
+                            channelBuffer[0][i] = leftRawValue / (float)short.MaxValue;
                             var rightReadBuffer1 = (lastPosition + i) * sizeof(float) + 3;
                             var rightReadBuffer2 = (lastPosition + i) * sizeof(float) + 2;
                             var rightRawValue = (readBuffer[rightReadBuffer1] << 8) | (0x00ff & readBuffer[rightReadBuffer2]);
-                            channelBuffer[1][i] = (short)rightRawValue / Audio.Constants.RescaleFactor;
+                            channelBuffer[1][i] = rightRawValue / (float)short.MaxValue;
                         }
 
                         processingState.WriteData(channelBuffer, length);
