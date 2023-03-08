@@ -84,7 +84,5 @@ ThirdParty/
 ThirdParty.meta
 StreamingAssets/
 StreamingAssets.meta
-
-# ====================== #
-# Project Symbolic Links #
-# ====================== #
+com.utilities.encoder.ogg/Assets/Plugins/
+com.utilities.encoder.ogg/Assets/Plugins.meta
