@@ -155,6 +155,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   audioSource: {fileID: 545589674}
   recordingKey: 32
+  debug: 1
 --- !u!82 &545589674
 AudioSource:
   m_ObjectHideFlags: 0
