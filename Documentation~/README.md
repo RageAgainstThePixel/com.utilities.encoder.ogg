@@ -2,7 +2,7 @@
 
 [![openupm](https://img.shields.io/npm/v/com.utilities.encoder.ogg?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.utilities.encoder.ogg/)
 
-A com.utilities.encoder.ogg package for the [Unity](https://unity.com/) Game Engine.
+Simple library for Ogg encoding support in the [Unity](https://unity.com/) Game Engine.
 
 This package uses the open source .net ogg vorbis encoder found on [NuGet](https://www.nuget.org/packages/OggVorbisEncoder/)
 
@@ -20,7 +20,7 @@ This package uses the open source .net ogg vorbis encoder found on [NuGet](https
     - `com.utilities`
 - Open the Unity Package Manager window
 - Change the Registry from Unity to `My Registries`
-- Add the `com.utilities.encoder.ogg` package
+- Add the `Utilities.Encoder.Ogg` package
 
 ### Via Unity Package Manager and Git url
 
