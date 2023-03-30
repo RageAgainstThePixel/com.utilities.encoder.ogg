@@ -10,6 +10,7 @@ using UnityEngine;
 using Utilities.Async;
 using Utilities.Audio;
 using Random = System.Random;
+using Microphone = Utilities.Audio.Microphone;
 
 namespace Utilities.Encoding.OggVorbis
 {
