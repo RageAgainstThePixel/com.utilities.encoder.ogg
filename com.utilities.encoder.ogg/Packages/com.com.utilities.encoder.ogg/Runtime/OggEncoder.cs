@@ -289,8 +289,6 @@ namespace Utilities.Encoding.OggVorbis
                 // BODY (Audio Data)
                 // =========================================================
                 var processingState = ProcessingState.Create(info);
-                var modulatorData = new short[samples.Length * info.Channels];
-                var readBuffer = new byte[samples.Length * sizeof(float)];
                 var channelBuffer = new float[info.Channels][];
 
                 for (var i = 0; i < info.Channels; i++)
@@ -305,9 +303,14 @@ namespace Utilities.Encoding.OggVorbis
                     await Awaiters.UnityMainThread;
                     var currentPosition = Microphone.GetPosition(null);
 
+                    if (lastPosition > currentPosition)
+                    {
+                        lastPosition = 0;
+                    }
+
                     if (clip != null)
                     {
-                        clip.GetData(samples, 0);
+                        clip.GetData(samples, lastPosition);
                     }
 
                     if (shouldStop)
@@ -318,31 +321,14 @@ namespace Utilities.Encoding.OggVorbis
                     // ReSharper disable once MethodSupportsCancellation
                     await Task.Delay(1).ConfigureAwait(false);
 
-                    if (currentPosition != 0)
+                    if (currentPosition > lastPosition)
                     {
-                        int sampleIndex = 0;
-
-                        foreach (var pcm in samples)
-                        {
-                            var sample = (short)(pcm * short.MaxValue);
-                            modulatorData[sampleIndex++] = sample;
-                            modulatorData[sampleIndex++] = sample;
-                        }
-
-                        Buffer.BlockCopy(modulatorData, 0, readBuffer, 0, modulatorData.Length);
-
-                        int length = currentPosition - lastPosition;
-
+                        var length = currentPosition - lastPosition;
                         for (var i = 0; i < length; i++)
                         {
-                            var leftReadBuffer1 = (lastPosition + i) * sizeof(float) + 1;
-                            var leftReadBuffer2 = (lastPosition + i) * sizeof(float) + 0;
-                            var leftRawValue = (readBuffer[leftReadBuffer1] << 8) | (0x00ff & readBuffer[leftReadBuffer2]);
-                            channelBuffer[0][i] = leftRawValue / (float)short.MaxValue;
-                            var rightReadBuffer1 = (lastPosition + i) * sizeof(float) + 3;
-                            var rightReadBuffer2 = (lastPosition + i) * sizeof(float) + 2;
-                            var rightRawValue = (readBuffer[rightReadBuffer1] << 8) | (0x00ff & readBuffer[rightReadBuffer2]);
-                            channelBuffer[1][i] = rightRawValue / (float)short.MaxValue;
+                            var pcm = samples[i]; // This assumes one channel of input from the microphone
+                            channelBuffer[0][i] = pcm;
+                            channelBuffer[1][i] = pcm;
                         }
 
                         processingState.WriteData(channelBuffer, length);
