@@ -7,15 +7,19 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.Scripting;
 using Utilities.Async;
 using Utilities.Audio;
-using Random = System.Random;
 using Microphone = Utilities.Audio.Microphone;
+using Random = System.Random;
 
 namespace Utilities.Encoding.OggVorbis
 {
     public class OggEncoder : IEncoder
     {
+        [Preserve]
+        public OggEncoder() { }
+
         public static float[][] ConvertPcmData(int outputSampleRate, int outputChannels, byte[] pcmSamples, int pcmSampleRate, int pcmChannels)
         {
             var numPcmSamples = pcmSamples.Length / sizeof(short) / pcmChannels;
