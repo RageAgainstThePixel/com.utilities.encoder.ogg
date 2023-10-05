@@ -306,10 +306,11 @@ namespace Utilities.Encoding.OggVorbis
                 {
                     await Awaiters.UnityMainThread;
                     var currentPosition = Microphone.GetPosition(null);
+                    var distance = currentPosition - lastPosition;
 
-                    if (lastPosition > currentPosition)
+                    if (distance == 0)
                     {
-                        lastPosition = 0;
+                        continue;
                     }
 
                     if (clip != null)
@@ -358,7 +359,7 @@ namespace Utilities.Encoding.OggVorbis
 
                     if (RecordingManager.EnableDebug)
                     {
-                        Debug.Log($"[{nameof(RecordingManager)}] State: {nameof(RecordingManager.IsRecording)}? {RecordingManager.IsRecording} | {currentPosition} | isCancelled? {cancellationToken.IsCancellationRequested}");
+                        Debug.Log($"[{nameof(RecordingManager)}] State: {nameof(RecordingManager.IsRecording)}? {RecordingManager.IsRecording} | {(RecordingManager.IsRecording ? distance : currentPosition)} | isCancelled? {cancellationToken.IsCancellationRequested}");
                     }
 
                     if (currentPosition == maxClipLength ||
