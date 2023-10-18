@@ -20,21 +20,25 @@ namespace Utilities.Encoding.OggVorbis
         [Preserve]
         public OggEncoder() { }
 
-        public static float[][] ConvertPcmData(int outputSampleRate, int outputChannels, byte[] pcmSamples, int pcmSampleRate, int pcmChannels)
+        [Obsolete("Use ConvertPcmData(byte[] pcmSamples, int pcmSampleRate, int pcmChannels)")]
+        public static float[][] ConvertPcmData(int outputSampleRage, int outputChannels, byte[] pcmSamples, int pcmSampleRate, int pcmChannels)
+            => ConvertPcmData(pcmSamples, pcmSampleRate, pcmChannels);
+
+        public static float[][] ConvertPcmData(byte[] pcmSamples, int pcmSampleRate, int pcmChannels)
         {
             var numPcmSamples = pcmSamples.Length / sizeof(short) / pcmChannels;
             var pcmDuration = numPcmSamples / (float)pcmSampleRate;
-            var numOutputSamples = (int)(pcmDuration * outputSampleRate) / pcmChannels;
-            var outSamples = new float[outputChannels][];
+            var numOutputSamples = (int)(pcmDuration * pcmSampleRate) / pcmChannels;
+            var outSamples = new float[pcmChannels][];
 
-            for (var ch = 0; ch < outputChannels; ch++)
+            for (var ch = 0; ch < pcmChannels; ch++)
             {
                 outSamples[ch] = new float[numOutputSamples];
             }
 
             for (var i = 0; i < numOutputSamples; i++)
             {
-                for (var channel = 0; channel < outputChannels; channel++)
+                for (var channel = 0; channel < pcmChannels; channel++)
                 {
                     var sampleIndex = i * pcmChannels * sizeof(short);
 
