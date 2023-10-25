@@ -19,8 +19,8 @@ namespace Utilities.Encoding.OggVorbis
         public static byte[] EncodeToOggVorbis(this AudioClip audioClip, bool trim = false)
         {
             var pcmData = audioClip.EncodeToPCM(PCMFormatSize.SixteenBit, trim);
-            var rawSamples = OggEncoder.ConvertPcmData(pcmData, audioClip.frequency, audioClip.channels);
-            var rawOggBytes = OggEncoder.ConvertToBytes(rawSamples, audioClip.frequency, audioClip.channels);
+            var samples = PCMEncoder.Decode(pcmData, PCMFormatSize.SixteenBit);
+            var rawOggBytes = OggEncoder.ConvertToBytes(samples, audioClip.frequency, audioClip.channels);
             return rawOggBytes;
         }
 
@@ -35,8 +35,8 @@ namespace Utilities.Encoding.OggVorbis
         {
             await Awaiters.UnityMainThread;
             var pcmData = audioClip.EncodeToPCM(PCMFormatSize.SixteenBit, trim);
-            var rawSamples = OggEncoder.ConvertPcmData(pcmData, audioClip.frequency, audioClip.channels);
-            var rawOggBytes = await OggEncoder.ConvertToBytesAsync(rawSamples, audioClip.frequency, audioClip.channels, cancellationToken: cancellationToken).ConfigureAwait(false);
+            var samples = PCMEncoder.Decode(pcmData, PCMFormatSize.SixteenBit);
+            var rawOggBytes = await OggEncoder.ConvertToBytesAsync(samples, audioClip.frequency, audioClip.channels, cancellationToken: cancellationToken).ConfigureAwait(false);
             return rawOggBytes;
         }
     }
