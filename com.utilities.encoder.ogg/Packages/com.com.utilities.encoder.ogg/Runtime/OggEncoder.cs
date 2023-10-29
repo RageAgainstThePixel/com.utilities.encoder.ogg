@@ -20,10 +20,11 @@ namespace Utilities.Encoding.OggVorbis
         [Preserve]
         public OggEncoder() { }
 
-        [Obsolete("Use ConvertPcmData(byte[] pcmSamples, int pcmSampleRate, int pcmChannels)")]
+        [Obsolete("Use ConvertSamples(float[] samples, int channels)")]
         public static float[][] ConvertPcmData(int outputSampleRage, int outputChannels, byte[] pcmSamples, int pcmSampleRate, int pcmChannels)
             => ConvertPcmData(pcmSamples, pcmSampleRate, pcmChannels);
 
+        [Obsolete("Use ConvertSamples(float[] samples, int channels)")]
         public static float[][] ConvertPcmData(byte[] pcmSamples, int pcmSampleRate, int pcmChannels)
         {
             var numPcmSamples = pcmSamples.Length / sizeof(short) / pcmChannels;
@@ -56,8 +57,40 @@ namespace Utilities.Encoding.OggVorbis
             return outSamples;
         }
 
+        public static float[][] ConvertSamples(float[] samples, int channels)
+        {
+            var buffer = new float[channels][];
+
+            for (var i = 0; i < channels; i++)
+            {
+                buffer[i] = new float[samples.Length];
+            }
+
+            for (var i = 0; i < samples.Length; i++)
+            {
+                var pcm = samples[i];
+
+                for (var channel = 0; channel < channels; channel++)
+                {
+                    buffer[channel][i] = pcm;
+                }
+            }
+
+            return buffer;
+        }
+        public static byte[] ConvertToBytes(float[] samples, int sampleRate, int channels, float quality = 1f)
+            => ConvertToBytes(ConvertSamples(samples, channels), sampleRate, channels, quality);
+
         public static byte[] ConvertToBytes(float[][] samples, int sampleRate, int channels, float quality = 1f)
         {
+            for (var i = 0; i < channels - 1; i++)
+            {
+                if (samples[i].Length != samples[i + 1].Length)
+                {
+                    throw new ArgumentException("Input sample channel length must be the same size.");
+                }
+            }
+
             using MemoryStream outputData = new MemoryStream();
 
             // Stores all the static vorbis bit stream settings
@@ -128,8 +161,19 @@ namespace Utilities.Encoding.OggVorbis
             return outputData.ToArray();
         }
 
+        public static async Task<byte[]> ConvertToBytesAsync(float[] samples, int sampleRate, int channels, float quality = 1f, CancellationToken cancellationToken = default)
+            => await ConvertToBytesAsync(ConvertSamples(samples, channels), sampleRate, channels, quality, cancellationToken);
+
         public static async Task<byte[]> ConvertToBytesAsync(float[][] samples, int sampleRate, int channels, float quality = 1f, CancellationToken cancellationToken = default)
         {
+            for (var i = 0; i < channels - 1; i++)
+            {
+                if (samples[i].Length != samples[i + 1].Length)
+                {
+                    throw new ArgumentException("Input sample channel length must be the same size.");
+                }
+            }
+
             using MemoryStream outputData = new MemoryStream();
 
             // Stores all the static vorbis bit stream settings
@@ -333,9 +377,10 @@ namespace Utilities.Encoding.OggVorbis
                     if (currentPosition > lastPosition)
                     {
                         var length = currentPosition - lastPosition;
+
                         for (var i = 0; i < length; i++)
                         {
-                            var pcm = samples[i]; // This assumes one channel of input from the microphone
+                            var pcm = samples[i];
                             channelBuffer[0][i] = pcm;
                             channelBuffer[1][i] = pcm;
                         }
