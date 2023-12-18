@@ -28,7 +28,7 @@ This package uses the open source .net ogg vorbis encoder found on [NuGet](https
 - Add package from git url: `https://github.com/RageAgainstThePixel/com.utilities.encoder.ogg.git#upm`
   > Note: this repo has dependencies on other repositories! You are responsible for adding these on your own.
   - [com.utilities.async](https://github.com/RageAgainstThePixel/com.utilities.async)
-  - [com.utilities.encoder.ogg](https://github.com/RageAgainstThePixel/com.utilities.encoder.ogg)
+  - [com.utilities.audio](https://github.com/RageAgainstThePixel/com.utilities.audio)
 
 ---
 
