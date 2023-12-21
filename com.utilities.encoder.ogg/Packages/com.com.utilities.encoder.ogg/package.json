@@ -17,6 +17,13 @@
   "dependencies": {
     "com.utilities.audio": "1.1.0"
   },
+  "samples": [
+    {
+      "displayName": "OggRecording",
+      "description": "Contains sample scene with OggRecordingBehaviour that will progressively save clip to disk as it records, then plays back the recording.",
+      "path": "Samples~/OggRecording"
+    }
+  ],
   "hideInEditor": false,
   "type": "library"
 }

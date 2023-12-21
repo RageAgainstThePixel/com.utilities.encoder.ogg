@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Utilities.Encoding.OggVorbis.Editor
 {
-    public class OggVorbisEditorUtilities
+    internal static class OggVorbisEditorUtilities
     {
         [MenuItem("CONTEXT/AudioClip/Convert to ogg...", true)]
         public static bool ConvertToOggVorbisValidate(MenuCommand menuCommand)
