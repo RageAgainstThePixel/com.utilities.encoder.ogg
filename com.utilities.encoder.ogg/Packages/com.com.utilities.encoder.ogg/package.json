@@ -3,7 +3,7 @@
   "displayName": "Utilities.Encoder.Ogg",
   "description": "Simple library for Ogg encoding support.",
   "keywords": [],
-  "version": "3.0.13",
+  "version": "3.1.0",
   "unity": "2021.3",
   "documentationUrl": "https://github.com/RageAgainstThePixel/com.utilities.encoder.ogg#documentation",
   "changelogUrl": "https://github.com/RageAgainstThePixel/com.utilities.encoder.ogg/releases",
@@ -15,8 +15,15 @@
   "author": "Stephen Hodgson",
   "url": "https://github.com/StephenHodgson",
   "dependencies": {
-    "com.utilities.audio": "1.0.12"
+    "com.utilities.audio": "1.1.0"
   },
+  "samples": [
+    {
+      "displayName": "OggRecording",
+      "description": "Contains sample scene with OggRecordingBehaviour that will progressively save clip to disk as it records, then plays back the recording.",
+      "path": "Samples~/OggRecording"
+    }
+  ],
   "hideInEditor": false,
   "type": "library"
 }
