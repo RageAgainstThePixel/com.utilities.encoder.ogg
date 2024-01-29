@@ -1,6 +1,5 @@
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -11,10 +10,6 @@ namespace Utilities.Encoding.OggVorbis
 {
     public static class AudioClipExtensions
     {
-        [Obsolete("Use new overload with bitDepth")]
-        public static byte[] EncodeToOggVorbis(this AudioClip audioClip, bool trim)
-            => EncodeToOggVorbis(audioClip, PCMFormatSize.SixteenBit, trim);
-
         /// <summary>
         /// Encodes the <see cref="AudioClip"/> to OggVorbis
         /// </summary>
@@ -29,10 +24,6 @@ namespace Utilities.Encoding.OggVorbis
             var rawOggBytes = OggEncoder.ConvertToBytes(samples, audioClip.frequency, audioClip.channels);
             return rawOggBytes;
         }
-
-        [Obsolete("use new overload with bitDepth")]
-        public static async Task<byte[]> EncodeToOggVorbisAsync(this AudioClip audioClip, bool trim, CancellationToken cancellationToken = default)
-            => await EncodeToOggVorbisAsync(audioClip, PCMFormatSize.SixteenBit, trim, cancellationToken);
 
         /// <summary>
         /// Encodes the <see cref="AudioClip"/> to OggVorbis
