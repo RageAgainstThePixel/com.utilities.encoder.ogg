@@ -43,9 +43,6 @@ namespace Utilities.Encoding.OggVorbis
             return buffer;
         }
 
-        public static byte[] ConvertToBytes(float[] samples, int sampleRate, int channels, float quality = 1f)
-            => ConvertToBytes(ConvertSamples(samples, channels), sampleRate, channels, quality);
-
         private static void ValidateSamples(float[][] samples, int channels)
         {
             for (var i = 0; i < channels - 1; i++)
@@ -57,25 +54,17 @@ namespace Utilities.Encoding.OggVorbis
             }
         }
 
+        public static byte[] ConvertToBytes(float[] samples, int sampleRate, int channels, float quality = 1f)
+            => ConvertToBytes(ConvertSamples(samples, channels), sampleRate, channels, quality);
+
         public static byte[] ConvertToBytes(float[][] samples, int sampleRate, int channels, float quality = 1f)
         {
             ValidateSamples(samples, channels);
             InitOggStream(sampleRate, channels, quality, out var oggStream, out var processingState);
             using var outStream = new MemoryStream();
             var sampleLength = samples[0].Length;
-            const int writeBufferSize = 1024;
-            var readIndex = 0;
-
-            do
-            {
-                oggStream.FlushPages(outStream, false);
-                ProcessChunk(oggStream, processingState, samples, readIndex);
-                readIndex += writeBufferSize;
-
-                if (readIndex >= sampleLength) { break; }
-            }
-            while (readIndex < sampleLength);
-
+            oggStream.FlushPages(outStream, false);
+            ProcessChunk(oggStream, processingState, samples, sampleLength);
             processingState.WriteEndOfStream();
             oggStream.FlushPages(outStream, true);
             return outStream.ToArray();
@@ -90,19 +79,8 @@ namespace Utilities.Encoding.OggVorbis
             InitOggStream(sampleRate, channels, quality, out var oggStream, out var processingState);
             using var outStream = new MemoryStream();
             var sampleLength = samples[0].Length;
-            const int writeBufferSize = 1024;
-            var readIndex = 0;
-
-            do
-            {
-                await oggStream.FlushPagesAsync(outStream, false, cancellationToken).ConfigureAwait(false);
-                ProcessChunk(oggStream, processingState, samples, readIndex);
-                readIndex += writeBufferSize;
-
-                if (readIndex >= sampleLength) { break; }
-            }
-            while (readIndex < sampleLength);
-
+            await oggStream.FlushPagesAsync(outStream, false, cancellationToken).ConfigureAwait(false);
+            ProcessChunk(oggStream, processingState, samples, sampleLength);
             processingState.WriteEndOfStream();
             await oggStream.FlushPagesAsync(outStream, true, cancellationToken).ConfigureAwait(false);
             var result = outStream.ToArray();
