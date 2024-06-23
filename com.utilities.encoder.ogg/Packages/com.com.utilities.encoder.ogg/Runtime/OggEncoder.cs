@@ -84,7 +84,6 @@ namespace Utilities.Encoding.OggVorbis
             processingState.WriteEndOfStream();
             await oggStream.FlushPagesAsync(outStream, true, cancellationToken).ConfigureAwait(false);
             var result = outStream.ToArray();
-            await outStream.DisposeAsync().ConfigureAwait(false);
             await Awaiters.UnityMainThread;
             return result;
         }
