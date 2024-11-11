@@ -104,7 +104,7 @@ namespace Utilities.Encoding.OggVorbis
         {
             if (callingMethodName != nameof(RecordingManager.StartRecordingAsync))
             {
-                throw new InvalidOperationException($"{nameof(StreamSaveToDiskAsync)} can only be called from {nameof(RecordingManager.StartRecordingAsync)}");
+                throw new InvalidOperationException($"{nameof(StreamSaveToDiskAsync)} can only be called from {nameof(RecordingManager.StartRecordingAsync)} not {callingMethodName}");
             }
 
             var outputPath = string.Empty;
