@@ -95,7 +95,7 @@ namespace Utilities.Encoding.OggVorbis
 
         /// <inheritdoc />
         [Preserve]
-        public Task StreamRecordingAsync(ClipData microphoneClipData, Action<ReadOnlyMemory<byte>> bufferCallback, CancellationToken cancellationToken, string callingMethodName = null)
+        public Task StreamRecordingAsync(ClipData microphoneClipData, Func<ReadOnlyMemory<byte>, Task> bufferCallback, CancellationToken cancellationToken, string callingMethodName = null)
             => throw new NotImplementedException("Use PCMEncoder instead");
 
         /// <inheritdoc />
