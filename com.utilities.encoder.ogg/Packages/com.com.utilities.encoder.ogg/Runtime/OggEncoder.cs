@@ -21,6 +21,7 @@ namespace Utilities.Encoding.OggVorbis
         [Preserve]
         public OggEncoder() { }
 
+        [Preserve]
         public static float[][] ConvertSamples(float[] samples, int channels)
         {
             var buffer = new float[channels][];
@@ -54,13 +55,15 @@ namespace Utilities.Encoding.OggVorbis
             }
         }
 
+        [Preserve]
         public static byte[] ConvertToBytes(float[] samples, int sampleRate, int channels, float quality = 1f)
             => ConvertToBytes(ConvertSamples(samples, channels), sampleRate, channels, quality);
 
+        [Preserve]
         public static byte[] ConvertToBytes(float[][] samples, int sampleRate, int channels, float quality = 1f)
         {
             ValidateSamples(samples, channels);
-            InitOggStream(sampleRate, channels, quality, out var oggStream, out var processingState);
+            WriteOggHeader(sampleRate, channels, quality, out var oggStream, out var processingState);
             using var outStream = new MemoryStream();
             var sampleLength = samples[0].Length;
             oggStream.FlushPages(outStream, false);
@@ -70,13 +73,15 @@ namespace Utilities.Encoding.OggVorbis
             return outStream.ToArray();
         }
 
+        [Preserve]
         public static async Task<byte[]> ConvertToBytesAsync(float[] samples, int sampleRate, int channels, float quality = 1f, CancellationToken cancellationToken = default)
             => await ConvertToBytesAsync(ConvertSamples(samples, channels), sampleRate, channels, quality, cancellationToken);
 
+        [Preserve]
         public static async Task<byte[]> ConvertToBytesAsync(float[][] samples, int sampleRate, int channels, float quality = 1f, CancellationToken cancellationToken = default)
         {
             ValidateSamples(samples, channels);
-            InitOggStream(sampleRate, channels, quality, out var oggStream, out var processingState);
+            WriteOggHeader(sampleRate, channels, quality, out var oggStream, out var processingState);
             using var outStream = new MemoryStream();
             var sampleLength = samples[0].Length;
             await oggStream.FlushPagesAsync(outStream, false, cancellationToken).ConfigureAwait(false);
@@ -84,238 +89,237 @@ namespace Utilities.Encoding.OggVorbis
             processingState.WriteEndOfStream();
             await oggStream.FlushPagesAsync(outStream, true, cancellationToken).ConfigureAwait(false);
             var result = outStream.ToArray();
-            await outStream.DisposeAsync().ConfigureAwait(false);
             await Awaiters.UnityMainThread;
             return result;
         }
 
-        public async Task<Tuple<string, AudioClip>> StreamSaveToDiskAsync(AudioClip clip, string saveDirectory, CancellationToken cancellationToken, Action<Tuple<string, AudioClip>> callback = null, [CallerMemberName] string callingMethodName = null)
+        /// <inheritdoc />
+        [Preserve]
+        public Task StreamRecordingAsync(ClipData microphoneClipData, Action<ReadOnlyMemory<byte>> bufferCallback, CancellationToken cancellationToken, string callingMethodName = null)
+            => throw new NotImplementedException("Use PCMEncoder instead");
+
+        /// <inheritdoc />
+        [Preserve]
+        public async Task<Tuple<string, AudioClip>> StreamSaveToDiskAsync(ClipData clipData, string saveDirectory, Action<Tuple<string, AudioClip>> callback, CancellationToken cancellationToken, [CallerMemberName] string callingMethodName = null)
         {
             if (callingMethodName != nameof(RecordingManager.StartRecordingAsync))
             {
                 throw new InvalidOperationException($"{nameof(StreamSaveToDiskAsync)} can only be called from {nameof(RecordingManager.StartRecordingAsync)}");
             }
 
-            if (!Microphone.IsRecording(null))
-            {
-                throw new InvalidOperationException("Microphone is not initialized!");
-            }
-
-            if (RecordingManager.IsProcessing)
-            {
-                throw new AccessViolationException("Recoding already in progress!");
-            }
-
+            var outputPath = string.Empty;
             RecordingManager.IsProcessing = true;
-
-            if (RecordingManager.EnableDebug)
-            {
-                Debug.Log($"[{nameof(RecordingManager)}] Recording process started...");
-            }
-
-            var sampleCount = 0;
-            var clipName = clip.name;
-            var channels = clip.channels;
-            var bufferSize = clip.samples;
-            var sampleRate = clip.frequency;
-            var sampleBuffer = new float[bufferSize];
-            var maxSamples = RecordingManager.MaxRecordingLength * sampleRate;
-            var finalSamples = new float[maxSamples];
-
-            if (RecordingManager.EnableDebug)
-            {
-                Debug.Log($"[{nameof(RecordingManager)}] Initializing data for {clipName}. Channels: {channels}, Sample Rate: {sampleRate}, Sample buffer size: {bufferSize}, Max Sample Length: {maxSamples}");
-            }
-
-            if (!Directory.Exists(saveDirectory))
-            {
-                Directory.CreateDirectory(saveDirectory);
-            }
-
-            var path = $"{saveDirectory}/{clipName}.ogg";
-
-            if (File.Exists(path))
-            {
-                Debug.LogWarning($"[{nameof(RecordingManager)}] {path} already exists, attempting to delete...");
-                File.Delete(path);
-            }
-
-            var outStream = new FileStream(path, FileMode.Create, FileAccess.Write);
+            Tuple<string, AudioClip> result = null;
 
             try
             {
-                // setup recording
-                var shouldStop = false;
-                var lastMicrophonePosition = 0;
-                var channelBuffer = new float[channels][];
+                Stream outStream;
 
-                for (var i = 0; i < channels; i++)
+                if (!string.IsNullOrWhiteSpace(saveDirectory))
                 {
-                    channelBuffer[i] = new float[sampleBuffer.Length];
+
+                    if (!Directory.Exists(saveDirectory))
+                    {
+                        Directory.CreateDirectory(saveDirectory);
+                    }
+
+                    outputPath = $"{saveDirectory}/{clipData.Name}.ogg";
+
+                    if (File.Exists(outputPath))
+                    {
+                        Debug.LogWarning($"[{nameof(RecordingManager)}] {outputPath} already exists, attempting to delete...");
+                        File.Delete(outputPath);
+                    }
+
+                    outStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write);
+                }
+                else
+                {
+                    outStream = new MemoryStream();
                 }
 
-                // initialize file header
-                InitOggStream(sampleRate, channels, 0.5f, out OggStream oggStream, out ProcessingState processingState);
+                var totalSampleCount = 0;
+                var finalSamples = new float[clipData.MaxSamples];
 
                 try
                 {
-                    do
+                    WriteOggHeader(clipData.SampleRate, clipData.Channels, 0.5f, out OggStream oggStream, out ProcessingState processingState);
+
+                    try
+                    {
+                        var sampleCount = 0;
+                        var shouldStop = false;
+                        var lastMicrophonePosition = 0;
+                        var channelBuffer = new float[clipData.Channels][];
+                        var sampleBuffer = new float[clipData.BufferSize];
+
+                        for (var i = 0; i < clipData.Channels; i++)
+                        {
+                            channelBuffer[i] = new float[sampleBuffer.Length];
+                        }
+
+                        do
+                        {
+                            await Awaiters.UnityMainThread; // ensure we're on main thread to call unity apis
+                            var microphonePosition = Microphone.GetPosition(clipData.Device);
+
+                            if (microphonePosition <= 0 && lastMicrophonePosition == 0)
+                            {
+                                // Skip this iteration if there's no new data
+                                // wait for next update
+                                continue;
+                            }
+
+                            var isLooping = microphonePosition < lastMicrophonePosition;
+                            int samplesToWrite;
+
+                            if (isLooping)
+                            {
+                                // Microphone loopback detected.
+                                samplesToWrite = clipData.BufferSize - lastMicrophonePosition;
+
+                                if (RecordingManager.EnableDebug)
+                                {
+                                    Debug.LogWarning($"[{nameof(RecordingManager)}] Microphone loopback detected! [{microphonePosition} < {lastMicrophonePosition}] samples to write: {samplesToWrite}");
+                                }
+                            }
+                            else
+                            {
+                                // No loopback, process normally.
+                                samplesToWrite = microphonePosition - lastMicrophonePosition;
+                            }
+
+                            if (samplesToWrite > 0)
+                            {
+                                clipData.Clip.GetData(sampleBuffer, 0);
+
+                                for (var i = 0; i < samplesToWrite; i++)
+                                {
+                                    var bufferIndex = (lastMicrophonePosition + i) % clipData.BufferSize; // Wrap around index.
+                                    var sample = sampleBuffer[bufferIndex];
+
+                                    for (var channel = 0; channel < clipData.Channels; channel++)
+                                    {
+                                        channelBuffer[channel][i] = sample;
+                                    }
+
+                                    // Store the sample in the final samples array.
+                                    finalSamples[sampleCount * clipData.Channels + i] = sampleBuffer[bufferIndex];
+                                }
+
+                                lastMicrophonePosition = microphonePosition;
+                                sampleCount += samplesToWrite;
+
+                                if (RecordingManager.EnableDebug)
+                                {
+                                    Debug.Log($"[{nameof(RecordingManager)}] State: {nameof(RecordingManager.IsRecording)}? {RecordingManager.IsRecording} | Wrote {samplesToWrite} samples | last mic pos: {lastMicrophonePosition} | total samples: {sampleCount} | isCancelled? {cancellationToken.IsCancellationRequested}");
+                                }
+
+                                await FlushPagesAsync(oggStream, outStream, false).ConfigureAwait(false);
+                                ProcessChunk(oggStream, processingState, channelBuffer, samplesToWrite);
+                            }
+
+                            // Check if we have recorded enough samples or if cancellation has been requested
+                            if (oggStream.Finished || sampleCount >= clipData.MaxSamples || cancellationToken.IsCancellationRequested)
+                            {
+                                shouldStop = true;
+                            }
+                        } while (!shouldStop);
+
+                        totalSampleCount = sampleCount;
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError($"[{nameof(RecordingManager)}] Failed to write to clip file!\n{e}");
+                    }
+                    finally
                     {
                         // Expected to be on the Unity Main Thread.
                         await Awaiters.UnityMainThread;
-                        var microphonePosition = Microphone.GetPosition(null);
+                        RecordingManager.IsRecording = false;
+                        Microphone.End(null);
 
-                        if (microphonePosition <= 0 && lastMicrophonePosition == 0)
+                        if (RecordingManager.EnableDebug)
                         {
-                            // Skip this iteration if there's no new data
-                            // wait for next update
-                            await Awaiters.UnityMainThread;
-                            continue;
+                            Debug.Log($"[{nameof(RecordingManager)}] Recording stopped, writing end of stream...");
                         }
 
-                        var isLooping = microphonePosition < lastMicrophonePosition;
-                        int samplesToWrite;
+                        processingState.WriteEndOfStream();
 
-                        if (isLooping)
+                        // Process any remaining packets after writing the end of stream
+                        while (processingState.PacketOut(out var packet))
                         {
-                            // Microphone loopback detected.
-                            samplesToWrite = bufferSize - lastMicrophonePosition;
-
-                            if (RecordingManager.EnableDebug)
-                            {
-                                Debug.LogWarning($"[{nameof(RecordingManager)}] Microphone loopback detected! [{microphonePosition} < {lastMicrophonePosition}] samples to write: {samplesToWrite}");
-                            }
-                        }
-                        else
-                        {
-                            // No loopback, process normally.
-                            samplesToWrite = microphonePosition - lastMicrophonePosition;
+                            oggStream.PacketIn(packet);
                         }
 
-                        if (samplesToWrite > 0)
+                        await FlushPagesAsync(oggStream, outStream, true);
+
+                        if (RecordingManager.EnableDebug)
                         {
-                            clip.GetData(sampleBuffer, 0);
-
-                            for (var i = 0; i < samplesToWrite; i++)
-                            {
-                                // Write pcm data to buffer.
-                                var bufferIndex = (lastMicrophonePosition + i) % bufferSize; // Wrap around index.
-                                var sample = sampleBuffer[bufferIndex];
-
-                                for (var channel = 0; channel < channels; channel++)
-                                {
-                                    channelBuffer[channel][i] = sample;
-                                }
-
-                                // Store the sample in the final samples array.
-                                finalSamples[sampleCount * channels + i] = sampleBuffer[bufferIndex];
-                            }
-
-                            lastMicrophonePosition = microphonePosition;
-                            sampleCount += samplesToWrite;
-
-                            if (RecordingManager.EnableDebug)
-                            {
-                                Debug.Log($"[{nameof(RecordingManager)}] State: {nameof(RecordingManager.IsRecording)}? {RecordingManager.IsRecording} | Wrote {samplesToWrite} samples | last mic pos: {lastMicrophonePosition} | total samples: {sampleCount} | isCancelled? {cancellationToken.IsCancellationRequested}");
-                            }
-
-                            await FlushPagesAsync(oggStream, outStream, false).ConfigureAwait(false);
-                            ProcessChunk(oggStream, processingState, channelBuffer, samplesToWrite);
+                            Debug.Log($"[{nameof(RecordingManager)}] Flush stream...");
                         }
 
-                        // Check if we have recorded enough samples or if cancellation has been requested
-                        if (oggStream.Finished || sampleCount >= maxSamples || cancellationToken.IsCancellationRequested)
+                        // ReSharper disable once MethodSupportsCancellation
+                        await outStream.FlushAsync().ConfigureAwait(false);
+
+                        if (RecordingManager.EnableDebug)
                         {
-                            shouldStop = true;
+                            Debug.Log($"[{nameof(RecordingManager)}] Stream disposed. File write operation complete.");
                         }
-                    } while (!shouldStop);
+                    }
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError($"[{nameof(RecordingManager)}] Failed to write to clip file!\n{e}");
+                    Debug.LogError($"[{nameof(RecordingManager)}] Failed to record clip!\n{e}");
+                    RecordingManager.IsRecording = false;
+                    RecordingManager.IsProcessing = false;
+                    return null;
                 }
                 finally
                 {
-                    // Expected to be on the Unity Main Thread.
-                    await Awaiters.UnityMainThread;
-                    RecordingManager.IsRecording = false;
-                    Microphone.End(null);
-
                     if (RecordingManager.EnableDebug)
                     {
-                        Debug.Log($"[{nameof(RecordingManager)}] Recording stopped, writing end of stream...");
+                        Debug.Log($"[{nameof(RecordingManager)}] Dispose stream...");
                     }
 
-                    processingState.WriteEndOfStream();
-
-                    // Process any remaining packets after writing the end of stream
-                    while (processingState.PacketOut(out var packet))
-                    {
-                        oggStream.PacketIn(packet);
-                    }
-
-                    await FlushPagesAsync(oggStream, outStream, true);
-
-                    if (RecordingManager.EnableDebug)
-                    {
-                        Debug.Log($"[{nameof(RecordingManager)}] Flush stream...");
-                    }
-
-                    // ReSharper disable once MethodSupportsCancellation
-                    await outStream.FlushAsync().ConfigureAwait(false);
-
-                    if (RecordingManager.EnableDebug)
-                    {
-                        Debug.Log($"[{nameof(RecordingManager)}] Stream disposed. File write operation complete.");
-                    }
+                    await outStream.DisposeAsync().ConfigureAwait(false);
                 }
+
+                if (RecordingManager.EnableDebug)
+                {
+                    Debug.Log($"[{nameof(RecordingManager)}] Finalized file write. Copying recording into new AudioClip");
+                }
+
+                // Trim the final samples down into the recorded range.
+                var microphoneData = new float[totalSampleCount * clipData.Channels];
+                Array.Copy(finalSamples, microphoneData, microphoneData.Length);
+
+                // Expected to be on the Unity Main Thread.
+                await Awaiters.UnityMainThread;
+
+                // Create a new copy of the final recorded clip.
+                var newClip = AudioClip.Create(clipData.Name, microphoneData.Length, clipData.Channels, clipData.SampleRate, false);
+                newClip.SetData(microphoneData, 0);
+                result = new Tuple<string, AudioClip>(outputPath, newClip);
+                callback?.Invoke(result);
             }
             catch (Exception e)
             {
-                Debug.LogError($"[{nameof(RecordingManager)}] Failed to record clip!\n{e}");
-                RecordingManager.IsRecording = false;
-                RecordingManager.IsProcessing = false;
-                return null;
+                Debug.LogException(e);
             }
             finally
             {
+                RecordingManager.IsProcessing = false;
+
                 if (RecordingManager.EnableDebug)
                 {
-                    Debug.Log($"[{nameof(RecordingManager)}] Dispose stream...");
+                    Debug.Log($"[{nameof(RecordingManager)}] Finished processing...");
                 }
-
-                await outStream.DisposeAsync().ConfigureAwait(false);
             }
-
-            if (RecordingManager.EnableDebug)
-            {
-                Debug.Log($"[{nameof(RecordingManager)}] Finalized file write. Copying recording into new AudioClip");
-            }
-
-            // Trim the final samples down into the recorded range.
-            var microphoneData = new float[sampleCount * channels];
-            Array.Copy(finalSamples, microphoneData, microphoneData.Length);
-
-            // Expected to be on the Unity Main Thread.
-            await Awaiters.UnityMainThread;
-
-            // Create a new copy of the final recorded clip.
-            var newClip = AudioClip.Create(clipName, microphoneData.Length, channels, sampleRate, false);
-            newClip.SetData(microphoneData, 0);
-            var result = new Tuple<string, AudioClip>(path, newClip);
-
-            RecordingManager.IsProcessing = false;
-
-            if (RecordingManager.EnableDebug)
-            {
-                Debug.Log($"[{nameof(RecordingManager)}] Finished processing...");
-            }
-
-            callback?.Invoke(result);
             return result;
         }
 
-        private static void InitOggStream(int sampleRate, int channels, float quality, out OggStream oggStream, out ProcessingState processingState)
+        private static void WriteOggHeader(int sampleRate, int channels, float quality, out OggStream oggStream, out ProcessingState processingState)
         {
             // Stores all the static vorbis bitstream settings
             var info = VorbisInfo.InitVariableBitRate(channels, sampleRate, quality);
@@ -332,7 +336,6 @@ namespace Utilities.Encoding.OggVorbis
             // bitstream spec.  The second header holds any comment fields.  The
             // third header holds the bitstream codebook.
             var comments = new Comments();
-
             var infoPacket = HeaderPacketBuilder.BuildInfoPacket(info);
             var commentsPacket = HeaderPacketBuilder.BuildCommentsPacket(comments);
             var booksPacket = HeaderPacketBuilder.BuildBooksPacket(info);
