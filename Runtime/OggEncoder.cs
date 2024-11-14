@@ -139,7 +139,7 @@ namespace Utilities.Encoding.OggVorbis
                 }
 
                 var totalSampleCount = 0;
-                var finalSamples = new float[clipData.MaxSamples];
+                var finalSamples = new float[clipData.MaxSamples ?? clipData.SampleRate * RecordingManager.MaxRecordingLength];
 
                 try
                 {
@@ -191,6 +191,7 @@ namespace Utilities.Encoding.OggVorbis
 
                             if (samplesToWrite > 0)
                             {
+                                cancellationToken.ThrowIfCancellationRequested();
                                 clipData.Clip.GetData(sampleBuffer, 0);
 
                                 for (var i = 0; i < samplesToWrite; i++)
