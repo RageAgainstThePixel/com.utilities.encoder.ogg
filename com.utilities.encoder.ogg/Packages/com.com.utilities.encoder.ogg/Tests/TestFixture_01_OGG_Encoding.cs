@@ -2,8 +2,11 @@
 
 using NUnit.Framework;
 using System.IO;
+using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Networking;
+using Utilities.Async;
 using Utilities.Audio;
 
 namespace Utilities.Encoding.OggVorbis.Tests
@@ -16,7 +19,7 @@ namespace Utilities.Encoding.OggVorbis.Tests
         [Test]
         public void Test_01_EncodeToOgg()
         {
-            // Load 16-bit PCM sample
+            // Load 16-bit sine PCM sample
             var raw16BitPcmPath = AssetDatabase.GUIDToAssetPath("252623e548216914b8abb0b584ceee72");
             Assert.IsTrue(File.Exists(raw16BitPcmPath), "16-bit PCM sample file not found");
 
@@ -47,6 +50,52 @@ namespace Utilities.Encoding.OggVorbis.Tests
             Assert.AreEqual('g', encodedBytes[1], "Incorrect OGG header");
             Assert.AreEqual('g', encodedBytes[2], "Incorrect OGG header");
             Assert.AreEqual('S', encodedBytes[3], "Incorrect OGG header");
+        }
+
+        [Test]
+        public async Task Test_02_ConvertWavToOgg()
+        {
+            // Load 16-bit sine WAV sample
+            var wavPath = AssetDatabase.GUIDToAssetPath("dcafdc3acfadbcc4c81ead4b57e6d8d2");
+            Assert.IsTrue(File.Exists(wavPath), "WAV sample file not found");
+
+            // Load WAV as AudioClip
+            var wavAudioClip = AssetDatabase.LoadAssetAtPath<AudioClip>(wavPath);
+            Assert.IsNotNull(wavAudioClip, "Failed to load AudioClip from WAV file");
+            Assert.AreEqual(1, wavAudioClip.channels, "Only mono audio is supported");
+
+            var oggFile = "test.ogg";
+            var testOggPath = Path.Combine(Application.dataPath, oggFile).Replace("\\", "/");
+            Assert.IsFalse(File.Exists(testOggPath));
+
+            try
+            {
+                // Convert the audio clip to OGG and save it to disk
+                var pcmData = new float[wavAudioClip.samples];
+                wavAudioClip.GetData(pcmData, 0);
+                var oggBytes = await OggEncoder.ConvertToBytesAsync(pcmData, wavAudioClip.frequency, 1);
+                await File.WriteAllBytesAsync(testOggPath, oggBytes).ConfigureAwait(true);
+                Assert.IsTrue(File.Exists(testOggPath));
+
+                // Load the OGG file as AudioClip
+                var webRequest = new UnityWebRequest($"file://{testOggPath}")
+                {
+                    downloadHandler = new DownloadHandlerAudioClip($"file://{testOggPath}", AudioType.OGGVORBIS)
+                };
+                await webRequest.SendWebRequest();
+                var oggAudioClip = ((DownloadHandlerAudioClip)webRequest.downloadHandler).audioClip;
+                Assert.IsNotNull(oggAudioClip, "Failed to load AudioClip from OGG file");
+
+                // Validate the AudioClip
+                Assert.AreEqual(wavAudioClip.samples, oggAudioClip.samples, $"Sample count mismatch: wav={wavAudioClip.samples}, ogg={oggAudioClip.samples}");
+            }
+            finally
+            {
+                if (File.Exists(testOggPath))
+                {
+                    File.Delete(testOggPath);
+                }
+            }
         }
     }
 }
