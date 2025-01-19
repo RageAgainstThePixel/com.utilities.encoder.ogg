@@ -139,23 +139,26 @@ namespace Utilities.Encoding.OggVorbis
                 }
 
                 var totalSampleCount = 0;
-                var finalSamples = new float[clipData.MaxSamples ?? clipData.SampleRate * RecordingManager.MaxRecordingLength];
+                var maxSampleLength = clipData.MaxSamples ?? clipData.OutputSampleRate * RecordingManager.MaxRecordingLength * clipData.Channels;
+                var finalSamples = new float[maxSampleLength];
 
                 try
                 {
-                    WriteOggHeader(clipData.SampleRate, clipData.Channels, 0.5f, out OggStream oggStream, out ProcessingState processingState);
+                    WriteOggHeader(clipData.OutputSampleRate, clipData.Channels, 0.5f, out OggStream oggStream, out ProcessingState processingState);
 
                     try
                     {
                         var sampleCount = 0;
                         var shouldStop = false;
                         var lastMicrophonePosition = 0;
+                        var inputBufferSize = clipData.InputBufferSize;
+                        var sampleBuffer = new float[inputBufferSize];
+                        var sampleBufferLength = sampleBuffer.Length;
                         var channelBuffer = new float[clipData.Channels][];
-                        var sampleBuffer = new float[clipData.BufferSize];
 
                         for (var i = 0; i < clipData.Channels; i++)
                         {
-                            channelBuffer[i] = new float[sampleBuffer.Length];
+                            channelBuffer[i] = new float[sampleBufferLength];
                         }
 
                         do
@@ -176,7 +179,7 @@ namespace Utilities.Encoding.OggVorbis
                             if (isLooping)
                             {
                                 // Microphone loopback detected.
-                                samplesToWrite = clipData.BufferSize - lastMicrophonePosition;
+                                samplesToWrite = clipData.OutputSampleRate - lastMicrophonePosition;
 
                                 if (RecordingManager.EnableDebug)
                                 {
@@ -196,16 +199,16 @@ namespace Utilities.Encoding.OggVorbis
 
                                 for (var i = 0; i < samplesToWrite; i++)
                                 {
-                                    var bufferIndex = (lastMicrophonePosition + i) % clipData.BufferSize; // Wrap around index.
-                                    var sample = sampleBuffer[bufferIndex];
+                                    var bufferIndex = (lastMicrophonePosition + i) % inputBufferSize; // Wrap around index.
+                                    var value = sampleBuffer[bufferIndex];
 
                                     for (var channel = 0; channel < clipData.Channels; channel++)
                                     {
-                                        channelBuffer[channel][i] = sample;
+                                        channelBuffer[channel][i] = value;
                                     }
 
                                     // Store the sample in the final samples array.
-                                    finalSamples[sampleCount * clipData.Channels + i] = sampleBuffer[bufferIndex];
+                                    finalSamples[sampleCount * clipData.Channels + i] = value;
                                 }
 
                                 lastMicrophonePosition = microphonePosition;
@@ -221,7 +224,7 @@ namespace Utilities.Encoding.OggVorbis
                             }
 
                             // Check if we have recorded enough samples or if cancellation has been requested
-                            if (oggStream.Finished || sampleCount >= clipData.MaxSamples || cancellationToken.IsCancellationRequested)
+                            if (oggStream.Finished || sampleCount >= maxSampleLength || cancellationToken.IsCancellationRequested)
                             {
                                 shouldStop = true;
                             }
@@ -299,7 +302,7 @@ namespace Utilities.Encoding.OggVorbis
                 await Awaiters.UnityMainThread;
 
                 // Create a new copy of the final recorded clip.
-                var newClip = AudioClip.Create(clipData.Name, microphoneData.Length, clipData.Channels, clipData.SampleRate, false);
+                var newClip = AudioClip.Create(clipData.Name, microphoneData.Length, clipData.Channels, clipData.OutputSampleRate, false);
                 newClip.SetData(microphoneData, 0);
                 result = new Tuple<string, AudioClip>(outputPath, newClip);
                 callback?.Invoke(result);
