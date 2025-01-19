@@ -139,7 +139,7 @@ namespace Utilities.Encoding.OggVorbis
                 }
 
                 var totalSampleCount = 0;
-                var maxSampleLength = clipData.MaxSamples ?? clipData.InputSampleRate * RecordingManager.MaxRecordingLength;
+                var maxSampleLength = clipData.MaxSamples ?? clipData.OutputSampleRate * RecordingManager.MaxRecordingLength * clipData.Channels;
                 var finalSamples = new float[maxSampleLength];
 
                 try
@@ -151,15 +151,14 @@ namespace Utilities.Encoding.OggVorbis
                         var sampleCount = 0;
                         var shouldStop = false;
                         var lastMicrophonePosition = 0;
-                        var needsResample = clipData.InputSampleRate != clipData.OutputSampleRate;
-                        var channelBuffer = new float[clipData.Channels][];
-                        var ratio = needsResample ? (double)clipData.InputSampleRate / clipData.OutputSampleRate : 1d;
                         var inputBufferSize = clipData.InputBufferSize;
                         var sampleBuffer = new float[inputBufferSize];
+                        var sampleBufferLength = sampleBuffer.Length;
+                        var channelBuffer = new float[clipData.Channels][];
 
                         for (var i = 0; i < clipData.Channels; i++)
                         {
-                            channelBuffer[i] = new float[sampleBuffer.Length];
+                            channelBuffer[i] = new float[sampleBufferLength];
                         }
 
                         do
@@ -180,7 +179,7 @@ namespace Utilities.Encoding.OggVorbis
                             if (isLooping)
                             {
                                 // Microphone loopback detected.
-                                samplesToWrite = clipData.InputSampleRate - lastMicrophonePosition;
+                                samplesToWrite = clipData.OutputSampleRate - lastMicrophonePosition;
 
                                 if (RecordingManager.EnableDebug)
                                 {
@@ -198,29 +197,10 @@ namespace Utilities.Encoding.OggVorbis
                                 cancellationToken.ThrowIfCancellationRequested();
                                 clipData.Clip.GetData(sampleBuffer, 0);
 
-                                var outputSamplesToWrite = needsResample
-                                    ? (int)(samplesToWrite * ratio)
-                                    : samplesToWrite;
-
-                                for (var i = 0; i < outputSamplesToWrite; i++)
+                                for (var i = 0; i < samplesToWrite; i++)
                                 {
-                                    float value;
-
-                                    if (needsResample)
-                                    {
-                                        var resampleIndex = Math.Round(lastMicrophonePosition + i / ratio, MidpointRounding.ToEven);
-                                        var leftIndex = (int)Math.Floor(resampleIndex) % inputBufferSize; // Wrap around index.
-                                        var rightIndex = (leftIndex + 1) % inputBufferSize; // Wrap around index.
-                                        var fraction = resampleIndex - leftIndex;
-
-                                        // Simple Linear Interpolation
-                                        value = (float)((1 - fraction) * sampleBuffer[leftIndex] + fraction * sampleBuffer[rightIndex]);
-                                    }
-                                    else
-                                    {
-                                        var bufferIndex = (lastMicrophonePosition + i) % inputBufferSize; // Wrap around index.
-                                        value = sampleBuffer[bufferIndex];
-                                    }
+                                    var bufferIndex = (lastMicrophonePosition + i) % inputBufferSize; // Wrap around index.
+                                    var value = sampleBuffer[bufferIndex];
 
                                     for (var channel = 0; channel < clipData.Channels; channel++)
                                     {
@@ -232,7 +212,7 @@ namespace Utilities.Encoding.OggVorbis
                                 }
 
                                 lastMicrophonePosition = microphonePosition;
-                                sampleCount += outputSamplesToWrite;
+                                sampleCount += samplesToWrite;
 
                                 if (RecordingManager.EnableDebug)
                                 {
