@@ -5,7 +5,10 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "Utilities.Audio",
-        "Utilities.Encoding.OggVorbis"
+        "Utilities.Encoding.OggVorbis",
+        "Utilities.Async",
+        "Utilities.Async.Editor",
+        "Unity.EditorCoroutines.Editor"
     ],
     "includePlatforms": [
         "Editor"
