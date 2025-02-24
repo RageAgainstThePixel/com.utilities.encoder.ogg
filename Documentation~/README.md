@@ -14,6 +14,14 @@ The recommended installation method is though the unity package manager and [Ope
 
 ### Via Unity Package Manager and OpenUPM
 
+#### Terminal
+
+```terminal
+openupm add com.utilities.encoder.ogg
+```
+
+#### Manual
+
 - Open your Unity project settings
 - Select the `Package Manager`
 ![scoped-registries](images/package-manager-scopes.png)
@@ -28,9 +36,11 @@ The recommended installation method is though the unity package manager and [Ope
 
 ### Via Unity Package Manager and Git url
 
+> [!WARNING]
+> This repo has dependencies on other repositories! You are responsible for adding these on your own.
+
 - Open your Unity Package Manager
 - Add package from git url: `https://github.com/RageAgainstThePixel/com.utilities.encoder.ogg.git#upm`
-  > Note: this repo has dependencies on other repositories! You are responsible for adding these on your own.
   - [com.utilities.async](https://github.com/RageAgainstThePixel/com.utilities.async)
   - [com.utilities.audio](https://github.com/RageAgainstThePixel/com.utilities.audio)
 
