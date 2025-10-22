@@ -19,7 +19,7 @@ namespace Utilities.Encoding.OggVorbis
     public class OggEncoder : IEncoder
     {
         [Preserve]
-        public OggEncoder() { }
+        protected OggEncoder() { }
 
         [Preserve]
         public static float[][] ConvertSamples(float[] samples, int channels)
