@@ -21,8 +21,15 @@ namespace Utilities.Encoding.OggVorbis
         {
             var pcmData = audioClip.EncodeToPCM(bitDepth, trim);
             var samples = PCMEncoder.Decode(pcmData, bitDepth);
-            var rawOggBytes = OggEncoder.ConvertToBytes(samples, audioClip.frequency, audioClip.channels);
-            return rawOggBytes;
+
+            try
+            {
+                return OggEncoder.ConvertToBytes(samples.ToArray(), audioClip.frequency, audioClip.channels);
+            }
+            finally
+            {
+                samples.Dispose();
+            }
         }
 
         /// <summary>
@@ -38,8 +45,15 @@ namespace Utilities.Encoding.OggVorbis
             await Awaiters.UnityMainThread;
             var pcmData = audioClip.EncodeToPCM(bitDepth, trim);
             var samples = PCMEncoder.Decode(pcmData, bitDepth);
-            var rawOggBytes = await OggEncoder.ConvertToBytesAsync(samples, audioClip.frequency, audioClip.channels, cancellationToken: cancellationToken).ConfigureAwait(false);
-            return rawOggBytes;
+
+            try
+            {
+                return await OggEncoder.ConvertToBytesAsync(samples.ToArray(), audioClip.frequency, audioClip.channels, cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                samples.Dispose();
+            }
         }
     }
 }
