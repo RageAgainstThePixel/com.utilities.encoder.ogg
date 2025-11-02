@@ -2,6 +2,8 @@
 
 using NUnit.Framework;
 using System.IO;
+using System.Linq;
+using Unity.Collections;
 using UnityEditor;
 using UnityEngine;
 using Utilities.Audio;
@@ -21,7 +23,7 @@ namespace Utilities.Encoding.OggVorbis.Tests
             Assert.IsTrue(File.Exists(raw16BitPcmPath), "16-bit PCM sample file not found");
 
             // Read PCM bytes
-            var pcm16BitBytes = File.ReadAllBytes(raw16BitPcmPath);
+            using var pcm16BitBytes = new NativeArray<byte>(File.ReadAllBytes(raw16BitPcmPath), Allocator.Temp);
             Assert.IsNotNull(pcm16BitBytes, "Failed to read 16-bit PCM bytes");
             Assert.IsNotEmpty(pcm16BitBytes, "16-bit PCM bytes array is empty");
 
