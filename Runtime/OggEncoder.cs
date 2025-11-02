@@ -6,6 +6,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Scripting;
 using Utilities.Async;
@@ -95,7 +96,7 @@ namespace Utilities.Encoding.OggVorbis
 
         /// <inheritdoc />
         [Preserve]
-        public Task StreamRecordingAsync(ClipData microphoneClipData, Func<ReadOnlyMemory<byte>, Task> bufferCallback, CancellationToken cancellationToken, string callingMethodName = null)
+        public Task StreamRecordingAsync(ClipData microphoneClipData, Func<NativeArray<byte>, Task> bufferCallback, Action<NativeArray<float>, int> sampleCallback, CancellationToken cancellationToken, string callingMethodName = null)
             => throw new NotImplementedException("Use PCMEncoder instead");
 
         /// <inheritdoc />
