@@ -35,7 +35,11 @@ namespace Utilities.Encoding.OggVorbis.Tests
             // Create AudioClip
             var audioClip = AudioClip.Create("16bit-sine", samples.Length, Channels, Frequency, false);
             Assert.IsNotNull(audioClip, "Failed to create AudioClip");
+#if UNITY_6000_0_OR_NEWER
             audioClip.SetData(samples, 0);
+#else
+            audioClip.SetData(samples.ToArray(), 0);
+#endif
 
             // Encode to OGG
             var encodedBytes = audioClip.EncodeToOggVorbis();
